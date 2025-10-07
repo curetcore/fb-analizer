@@ -30,6 +30,9 @@ RUN adduser --system --uid 1001 expressjs
 COPY --from=deps --chown=expressjs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=expressjs:nodejs /app ./
 
+# Create logs directory with correct permissions
+RUN mkdir -p /app/logs && chown -R expressjs:nodejs /app/logs
+
 # Set environment
 ENV NODE_ENV=production
 ENV PORT=4000
