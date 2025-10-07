@@ -45,7 +45,6 @@ export default function SettingsPage() {
   }
 
   const handleManualSync = async () => {
-
     setSyncing(true)
     try {
       await axios.post(
@@ -138,20 +137,19 @@ export default function SettingsPage() {
               </div>
 
               {/* Botón de sincronización manual */}
-              {(
-                <div className="pt-4">
-                  <button
-                    onClick={handleManualSync}
-                    disabled={syncing || !syncStatus.hasAccessToken}
-                    className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-                  >
-                    {syncing ? 'Sincronizando...' : 'Sincronizar ahora'}
-                  </button>
-                  <p className="text-sm text-gray-500 mt-2">
-                    La sincronización automática se ejecuta cada hora
-                  </p>
-                </div>
-              )
+              {/* Botón de sincronización manual */}
+              <div className="pt-4">
+                <button
+                  onClick={handleManualSync}
+                  disabled={syncing || !syncStatus.hasAccessToken}
+                  className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                >
+                  {syncing ? 'Sincronizando...' : 'Sincronizar ahora'}
+                </button>
+                <p className="text-sm text-gray-500 mt-2">
+                  La sincronización automática se ejecuta cada hora
+                </p>
+              </div>
 
               {!syncStatus.hasAccessToken && (
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
