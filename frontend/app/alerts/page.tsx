@@ -441,7 +441,7 @@ export default function AlertsPage() {
                       )}
                     </button>
                     <button
-                      onClick={() => toast.info('Próximamente: Editar alerta')}
+                      onClick={() => toast('Próximamente: Editar alerta')}
                       className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
                     >
                       <PencilIcon className="h-4 w-4" />
