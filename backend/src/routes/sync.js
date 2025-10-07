@@ -1,12 +1,12 @@
 const express = require('express');
 const facebookSync = require('../services/facebookSync');
-const { auth, adminOnly } = require('../middleware/auth');
+const { auth, authorize } = require('../middleware/auth');
 const logger = require('../utils/logger');
 
 const router = express.Router();
 
 // Manual sync endpoint (admin only)
-router.post('/facebook', auth, adminOnly, async (req, res) => {
+router.post('/facebook', auth, authorize('admin'), async (req, res) => {
   try {
     const { daysBack = 30 } = req.body;
     
