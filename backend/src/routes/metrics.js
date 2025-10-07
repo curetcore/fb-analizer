@@ -3,9 +3,87 @@ const { query } = require('../config/database');
 const { auth } = require('../middleware/auth');
 const cache = require('../config/redis');
 const logger = require('../utils/logger');
-const { startOfDay, endOfDay, subDays, format } = require('date-fns');
+const { startOfDay, endOfDay, subDays, format, eachDayOfInterval, parseISO } = require('date-fns');
 
 const router = express.Router();
+
+// Función para generar datos mockeados
+function generateMockData(startDate, endDate) {
+  const days = eachDayOfInterval({
+    start: parseISO(startDate),
+    end: parseISO(endDate)
+  });
+
+  // Generar tendencia diaria
+  const trend = days.map(date => {
+    const randomMultiplier = 0.8 + Math.random() * 0.4; // 0.8 a 1.2
+    return {
+      date: format(date, 'yyyy-MM-dd'),
+      impressions: Math.floor(50000 * randomMultiplier),
+      clicks: Math.floor(1500 * randomMultiplier),
+      spend: Number((1000 * randomMultiplier).toFixed(2)),
+      conversions: Math.floor(100 * randomMultiplier),
+      revenue: Number((3000 * randomMultiplier).toFixed(2)),
+      ctr: Number((3 + Math.random() * 2).toFixed(2)),
+      cpc: Number((0.5 + Math.random() * 0.5).toFixed(2)),
+      roas: Number((2.5 + Math.random() * 1.5).toFixed(2))
+    };
+  });
+
+  // Calcular totales
+  const totals = trend.reduce((acc, day) => ({
+    impressions: acc.impressions + day.impressions,
+    clicks: acc.clicks + day.clicks,
+    spend: acc.spend + day.spend,
+    conversions: acc.conversions + day.conversions,
+    revenue: acc.revenue + day.revenue
+  }), { impressions: 0, clicks: 0, spend: 0, conversions: 0, revenue: 0 });
+
+  // Generar top campañas
+  const campaignNames = [
+    'Black Friday 2024',
+    'Promoción Verano',
+    'Lanzamiento Producto X',
+    'Remarketing Web',
+    'Captación Leads B2B',
+    'Brand Awareness',
+    'Flash Sale Weekend',
+    'Cliente VIP Exclusivo'
+  ];
+
+  const topCampaigns = campaignNames.slice(0, 8).map((name, index) => {
+    const multiplier = (8 - index) / 8; // Más alto para las primeras
+    return {
+      id: index + 1,
+      name,
+      status: index < 5 ? 'ACTIVE' : 'PAUSED',
+      impressions: Math.floor(totals.impressions * 0.15 * multiplier),
+      clicks: Math.floor(totals.clicks * 0.15 * multiplier),
+      spend: Number((totals.spend * 0.15 * multiplier).toFixed(2)),
+      conversions: Math.floor(totals.conversions * 0.15 * multiplier),
+      revenue: Number((totals.revenue * 0.15 * multiplier).toFixed(2)),
+      ctr: Number((2 + Math.random() * 3).toFixed(2)),
+      roas: Number((1.5 + Math.random() * 3).toFixed(2))
+    };
+  });
+
+  return {
+    summary: {
+      total_campaigns: 12,
+      total_impressions: totals.impressions,
+      total_clicks: totals.clicks,
+      total_spend: totals.spend,
+      total_conversions: totals.conversions,
+      total_revenue: totals.revenue,
+      avg_ctr: Number((totals.clicks / totals.impressions * 100).toFixed(2)),
+      avg_cpc: Number((totals.spend / totals.clicks).toFixed(2)),
+      avg_roas: Number((totals.revenue / totals.spend).toFixed(2))
+    },
+    trend,
+    topCampaigns,
+    dateRange: { start: startDate, end: endDate }
+  };
+}
 
 // Get dashboard metrics
 router.get('/dashboard', auth, async (req, res) => {
@@ -45,6 +123,13 @@ router.get('/dashboard', auth, async (req, res) => {
         AND date >= $2 
         AND date <= $3
     `, [accountId, start, end]);
+
+    // Si no hay datos, usar datos mockeados
+    if (!summaryResult.rows[0].total_campaigns) {
+      const mockData = generateMockData(start, end);
+      await cache.set(cacheKey, mockData, 900);
+      return res.json(mockData);
+    }
 
     // Get daily trend
     const trendResult = await query(`

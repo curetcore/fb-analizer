@@ -3,9 +3,13 @@ import axios from 'axios'
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
 
 export const metricsService = {
-  async getDashboardMetrics(accountId: number, token: string) {
+  async getDashboardMetrics(accountId: number, token: string, startDate?: string, endDate?: string) {
     const response = await axios.get(`${API_URL}/api/metrics/dashboard`, {
-      params: { accountId },
+      params: { 
+        accountId,
+        startDate,
+        endDate 
+      },
       headers: {
         Authorization: `Bearer ${token}`,
       },

@@ -17,6 +17,10 @@ export default function DashboardPage() {
   const [metrics, setMetrics] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [selectedAccount, setSelectedAccount] = useState<number | null>(null)
+  const [dateRange, setDateRange] = useState({
+    startDate: new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split('T')[0],
+    endDate: new Date().toISOString().split('T')[0]
+  })
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -34,14 +38,16 @@ export default function DashboardPage() {
     if (selectedAccount && token) {
       fetchDashboardData()
     }
-  }, [selectedAccount, token])
+  }, [selectedAccount, token, dateRange])
 
   const fetchDashboardData = async () => {
     setLoading(true)
     try {
       const data = await metricsService.getDashboardMetrics(
         selectedAccount!,
-        token!
+        token!,
+        dateRange.startDate,
+        dateRange.endDate
       )
       setMetrics(data)
     } catch (error) {
@@ -51,26 +57,55 @@ export default function DashboardPage() {
     }
   }
 
+  const handleDateChange = (field: 'startDate' | 'endDate', value: string) => {
+    setDateRange(prev => ({ ...prev, [field]: value }))
+  }
+
   if (!isAuthenticated) return null
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-          {user && user.account_ids.length > 1 && (
-            <select
-              value={selectedAccount || ''}
-              onChange={(e) => setSelectedAccount(Number(e.target.value))}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-            >
-              {user.account_ids.map((id) => (
-                <option key={id} value={id}>
-                  Cuenta {id}
-                </option>
-              ))}
-            </select>
-          )}
+          <div className="flex flex-wrap gap-4">
+            {/* Selector de fechas */}
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-600">Desde:</label>
+              <input
+                type="date"
+                value={dateRange.startDate}
+                onChange={(e) => handleDateChange('startDate', e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                max={dateRange.endDate}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-600">Hasta:</label>
+              <input
+                type="date"
+                value={dateRange.endDate}
+                onChange={(e) => handleDateChange('endDate', e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                min={dateRange.startDate}
+                max={new Date().toISOString().split('T')[0]}
+              />
+            </div>
+            {/* Selector de cuenta */}
+            {user && user.account_ids.length > 1 && (
+              <select
+                value={selectedAccount || ''}
+                onChange={(e) => setSelectedAccount(Number(e.target.value))}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              >
+                {user.account_ids.map((id) => (
+                  <option key={id} value={id}>
+                    Cuenta {id}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
         </div>
 
         {loading ? (
