@@ -1,0 +1,156 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: fbads-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-fbadsuser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-localpassword}
+      POSTGRES_DB: ${POSTGRES_DB:-fbads}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fbadsuser}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: fbads-redis
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD:-localredispass}
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    container_name: fbads-backend
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 4000
+      # Database
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-fbadsuser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-localpassword}
+      POSTGRES_DB: ${POSTGRES_DB:-fbads}
+      # Redis
+      REDIS_URL: redis://:${REDIS_PASSWORD:-localredispass}@redis:6379
+      # App
+      JWT_SECRET: ${JWT_SECRET:-local-jwt-secret}
+      # Facebook (configure these)
+      FACEBOOK_APP_ID: ${FACEBOOK_APP_ID}
+      FACEBOOK_APP_SECRET: ${FACEBOOK_APP_SECRET}
+      FACEBOOK_ACCESS_TOKEN: ${FACEBOOK_ACCESS_TOKEN}
+      # URLs
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    command: npm run dev
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+    container_name: fbads-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:4000}
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    command: npm run dev
+
+  # Airbyte (simplificado para desarrollo)
+  # Para producción, usar la configuración completa de Easypanel
+  airbyte-db:
+    image: postgres:13-alpine
+    container_name: fbads-airbyte-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: airbyte
+      POSTGRES_USER: airbyte
+      POSTGRES_PASSWORD: ${AIRBYTE_DB_PASSWORD:-airbyte}
+    volumes:
+      - airbyte_db_data:/var/lib/postgresql/data
+    networks:
+      - airbyte_internal
+
+  airbyte-server:
+    image: airbyte/server:0.50.0
+    container_name: fbads-airbyte-server
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://airbyte:${AIRBYTE_DB_PASSWORD:-airbyte}@airbyte-db:5432/airbyte
+      CONFIG_ROOT: /data
+      TRACKING_STRATEGY: logging
+      AIRBYTE_VERSION: 0.50.0
+      DEPLOYMENT_MODE: OSS
+    ports:
+      - "8001:8001"
+    volumes:
+      - airbyte_data:/data
+      - airbyte_db:/config
+    depends_on:
+      - airbyte-db
+    networks:
+      - default
+      - airbyte_internal
+
+  airbyte-webapp:
+    image: airbyte/webapp:0.50.0
+    container_name: fbads-airbyte-webapp
+    restart: unless-stopped
+    environment:
+      INTERNAL_API_HOST: airbyte-server:8001
+      TRACKING_STRATEGY: logging
+    ports:
+      - "8000:80"
+    depends_on:
+      - airbyte-server
+    networks:
+      - default
+      - airbyte_internal
+
+volumes:
+  postgres_data:
+  redis_data:
+  airbyte_db_data:
+  airbyte_data:
+  airbyte_db:
+
+networks:
+  default:
+    driver: bridge
+  airbyte_internal:
+    driver: bridge
