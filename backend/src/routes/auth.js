@@ -8,6 +8,73 @@ const logger = require('../utils/logger');
 
 const router = express.Router();
 
+// Guest login endpoint
+router.post('/guest', async (req, res) => {
+  try {
+    // Crear o obtener usuario invitado
+    let guestUser = await query(
+      'SELECT id, email, name, role, account_ids FROM users WHERE email = $1',
+      ['guest@demo.com']
+    );
+
+    if (guestUser.rows.length === 0) {
+      // Crear usuario invitado si no existe
+      const hashedPassword = await bcrypt.hash('guest-' + Date.now(), 10);
+      
+      // Primero obtener todas las cuentas disponibles
+      const accountsResult = await query('SELECT id FROM accounts ORDER BY id');
+      const accountIds = accountsResult.rows.map(a => a.id);
+      
+      const createResult = await query(
+        'INSERT INTO users (email, password_hash, name, role, account_ids) VALUES ($1, $2, $3, $4, $5) RETURNING id, email, name, role, account_ids',
+        ['guest@demo.com', hashedPassword, 'Usuario Invitado', 'viewer', accountIds.length > 0 ? accountIds : [1]]
+      );
+      guestUser = createResult;
+    } else {
+      // Actualizar account_ids del usuario invitado con las cuentas actuales
+      const accountsResult = await query('SELECT id FROM accounts ORDER BY id');
+      const accountIds = accountsResult.rows.map(a => a.id);
+      
+      if (accountIds.length > 0) {
+        await query(
+          'UPDATE users SET account_ids = $1 WHERE email = $2',
+          [accountIds, 'guest@demo.com']
+        );
+        guestUser.rows[0].account_ids = accountIds;
+      }
+    }
+
+    const user = guestUser.rows[0];
+
+    // Generar token real
+    const token = jwt.sign(
+      { userId: user.id },
+      process.env.JWT_SECRET || 'default-secret-key',
+      { expiresIn: '24h' }
+    );
+
+    // Guardar sesión
+    await query(
+      'INSERT INTO user_sessions (user_id, token, expires_at) VALUES ($1, $2, $3) ON CONFLICT (token) DO NOTHING',
+      [user.id, token, new Date(Date.now() + 24 * 60 * 60 * 1000)]
+    );
+
+    res.json({
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        account_ids: user.account_ids || []
+      },
+      token
+    });
+  } catch (error) {
+    logger.error('Guest login error:', error);
+    res.status(500).json({ error: 'Failed to create guest session' });
+  }
+});
+
 // Register
 router.post('/register', [
   body('email').isEmail().normalizeEmail(),
@@ -81,7 +148,7 @@ router.post('/login', [
 
     // Get user
     const result = await query(
-      'SELECT id, email, name, role, password_hash FROM users WHERE email = $1',
+      'SELECT id, email, name, role, password_hash, account_ids FROM users WHERE email = $1',
       [email]
     );
 

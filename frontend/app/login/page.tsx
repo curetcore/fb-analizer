@@ -38,20 +38,21 @@ export default function LoginPage() {
     }
   }
 
-  const handleGuestLogin = () => {
-    // Simular usuario invitado
-    const guestUser = {
-      id: 1,
-      email: 'guest@demo.com',
-      name: 'Usuario Invitado',
-      role: 'viewer',
-      account_ids: [1, 2]
+  const handleGuestLogin = async () => {
+    setIsLoading(true)
+    try {
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/api/auth/guest`)
+      const { user, token } = response.data
+      
+      setUser(user, token)
+      toast.success('Accediendo como invitado')
+      router.push('/dashboard')
+    } catch (error: any) {
+      console.error('Guest login error:', error)
+      toast.error(error.response?.data?.error || 'Error al acceder como invitado')
+    } finally {
+      setIsLoading(false)
     }
-    const guestToken = 'demo-token-' + Date.now()
-    
-    setUser(guestUser, guestToken)
-    toast.success('Accediendo como invitado')
-    router.push('/dashboard')
   }
 
   return (
