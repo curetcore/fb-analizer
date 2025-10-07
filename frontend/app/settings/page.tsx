@@ -18,6 +18,7 @@ export default function SettingsPage() {
   const [syncStatus, setSyncStatus] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
+  const [syncProgress, setSyncProgress] = useState<any>(null)
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -46,21 +47,50 @@ export default function SettingsPage() {
 
   const handleManualSync = async () => {
     setSyncing(true)
+    setSyncProgress(null)
+    
     try {
       await axios.post(
         `${API_URL}/api/sync/facebook`,
         { daysBack: 30 },
         { headers: { Authorization: `Bearer ${token}` } }
       )
-      toast.success('Sincronización iniciada en segundo plano')
+      toast('Sincronización iniciada')
       
-      // Refresh status after a few seconds
+      // Iniciar polling del progreso
+      const progressInterval = setInterval(async () => {
+        try {
+          const response = await axios.get(`${API_URL}/api/sync/progress`, {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+          
+          setSyncProgress(response.data)
+          
+          // Si completó, detener el polling
+          if (response.data.status === 'completed' || response.data.status === 'failed' || response.data.status === 'idle') {
+            clearInterval(progressInterval)
+            setSyncing(false)
+            
+            if (response.data.status === 'completed') {
+              toast.success('¡Sincronización completada exitosamente!')
+              fetchSyncStatus()
+            } else if (response.data.status === 'failed') {
+              toast.error('Error durante la sincronización')
+            }
+          }
+        } catch (error) {
+          console.error('Error checking sync progress:', error)
+        }
+      }, 1000) // Actualizar cada segundo
+      
+      // Limpiar interval después de 10 minutos por seguridad
       setTimeout(() => {
-        fetchSyncStatus()
-      }, 5000)
+        clearInterval(progressInterval)
+        setSyncing(false)
+      }, 600000)
+      
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Error al iniciar sincronización')
-    } finally {
       setSyncing(false)
     }
   }
@@ -149,6 +179,32 @@ export default function SettingsPage() {
                 <p className="text-sm text-gray-500 mt-2">
                   La sincronización automática se ejecuta cada hora
                 </p>
+                
+                {/* Barra de progreso */}
+                {syncing && syncProgress && (
+                  <div className="mt-4 space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600">{syncProgress.currentTask || 'Procesando...'}</span>
+                      <span className="font-medium">{syncProgress.percentage || 0}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-primary-600 h-2 rounded-full transition-all duration-300 ease-out"
+                        style={{ width: `${syncProgress.percentage || 0}%` }}
+                      />
+                    </div>
+                    {syncProgress.details && (
+                      <div className="text-xs text-gray-500 space-y-1">
+                        {syncProgress.details.accounts && (
+                          <p>Cuentas: {syncProgress.details.accounts.processed || 0}/{syncProgress.details.accounts.total || 0}</p>
+                        )}
+                        {syncProgress.details.campaigns && syncProgress.details.campaigns.total > 0 && (
+                          <p>Campañas procesadas: {syncProgress.details.campaigns.total}</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {!syncStatus.hasAccessToken && (

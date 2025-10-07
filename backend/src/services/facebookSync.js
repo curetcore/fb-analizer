@@ -1,6 +1,7 @@
 const axios = require('axios');
 const { query } = require('../config/database');
 const logger = require('../utils/logger');
+const syncProgress = require('./syncProgress');
 const { format, subDays } = require('date-fns');
 
 class FacebookSyncService {
@@ -231,18 +232,42 @@ class FacebookSyncService {
     try {
       logger.info('Starting Facebook full sync...');
       
+      // Calcular pasos totales
+      const accounts = await this.getAdAccounts();
+      const totalSteps = 1 + (accounts.length * 3); // 1 para cuentas + 3 por cuenta (detalles, campañas, métricas)
+      
+      await syncProgress.startSync(totalSteps);
+      
       // 1. Sincronizar cuentas
-      const accounts = await this.syncAccounts();
+      await syncProgress.updateProgress(1, 'Sincronizando cuentas de Facebook...', {
+        accounts: { total: accounts.length, processed: 0 }
+      });
+      await this.syncAccounts();
+      
+      let step = 1;
       
       // 2. Para cada cuenta, sincronizar campañas y métricas
-      for (const account of accounts) {
+      for (let i = 0; i < accounts.length; i++) {
+        const account = accounts[i];
         const accountId = account.id.replace('act_', '');
         
         try {
+          // Actualizar progreso - detalles de cuenta
+          step++;
+          await syncProgress.updateProgress(step, `Procesando cuenta ${account.name}...`, {
+            accounts: { total: accounts.length, processed: i + 1 }
+          });
+          
           // Sincronizar campañas
-          await this.syncCampaigns(accountId);
+          step++;
+          await syncProgress.updateProgress(step, `Sincronizando campañas de ${account.name}...`);
+          const campaigns = await this.syncCampaigns(accountId);
           
           // Sincronizar métricas
+          step++;
+          await syncProgress.updateProgress(step, `Sincronizando métricas de ${account.name} (últimos ${daysBack} días)...`, {
+            campaigns: { total: campaigns || 0, processed: campaigns || 0 }
+          });
           await this.syncDailyMetrics(accountId, daysBack);
           
         } catch (error) {
@@ -251,11 +276,15 @@ class FacebookSyncService {
         }
       }
       
+      // Marcar sincronización como completada
+      await syncProgress.completeSync(true);
+      
       logger.info('Facebook sync completed successfully');
       return { success: true, accountsSynced: accounts.length };
       
     } catch (error) {
       logger.error('Facebook sync failed:', error);
+      await syncProgress.completeSync(false);
       throw error;
     }
   }

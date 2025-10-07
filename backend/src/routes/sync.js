@@ -1,5 +1,6 @@
 const express = require('express');
 const facebookSync = require('../services/facebookSync');
+const syncProgress = require('../services/syncProgress');
 const { auth, authorize } = require('../middleware/auth');
 const logger = require('../utils/logger');
 
@@ -81,6 +82,26 @@ router.get('/status', auth, async (req, res) => {
   } catch (error) {
     logger.error('Status endpoint error:', error);
     res.status(500).json({ error: 'Failed to get sync status' });
+  }
+});
+
+// Get sync progress
+router.get('/progress', auth, async (req, res) => {
+  try {
+    const progress = await syncProgress.getProgress();
+    
+    if (!progress) {
+      return res.json({
+        status: 'idle',
+        percentage: 0,
+        currentTask: 'Sin sincronización activa'
+      });
+    }
+    
+    res.json(progress);
+  } catch (error) {
+    logger.error('Get sync progress error:', error);
+    res.status(500).json({ error: 'Failed to get sync progress' });
   }
 });
 
