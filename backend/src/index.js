@@ -8,6 +8,7 @@ const errorHandler = require('./middleware/errorHandler');
 const { connectDB } = require('./config/database');
 const { connectRedis } = require('./config/redis');
 const cronJobs = require('./jobs/cronJobs');
+const runMigrations = require('./database/runMigrations');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -67,6 +68,9 @@ async function startServer() {
     // Connect to databases
     await connectDB();
     await connectRedis();
+    
+    // Run database migrations
+    await runMigrations();
     
     // Start cron jobs
     cronJobs.start();
