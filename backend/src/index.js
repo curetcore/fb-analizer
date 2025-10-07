@@ -12,6 +12,9 @@ const cronJobs = require('./jobs/cronJobs');
 const app = express();
 const PORT = process.env.PORT || 4000;
 
+// Trust proxy - required for Easypanel
+app.set('trust proxy', true);
+
 // Security middleware
 app.use(helmet());
 app.use(cors({
@@ -22,7 +25,8 @@ app.use(cors({
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
+  max: 100, // limit each IP to 100 requests per windowMs
+  trustProxy: true
 });
 app.use('/api', limiter);
 
