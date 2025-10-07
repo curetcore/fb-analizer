@@ -6,7 +6,11 @@ import { useAuthStore } from '@/store/authStore'
 import DashboardLayout from '@/components/layouts/DashboardLayout'
 import { alertService } from '@/lib/services/alerts'
 import { formatCurrency, formatPercentage } from '@/lib/utils/formatters'
+import AccountSelector from '@/components/common/AccountSelector'
 import toast from 'react-hot-toast'
+import axios from 'axios'
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'
 import { 
   BellIcon, 
   BellAlertIcon,
@@ -50,6 +54,7 @@ export default function AlertsPage() {
   const [loading, setLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [statusFilter, setStatusFilter] = useState('all')
+  const [selectedAccount, setSelectedAccount] = useState<number | null>(null)
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -58,10 +63,16 @@ export default function AlertsPage() {
   }, [isAuthenticated, router])
 
   useEffect(() => {
-    if (token) {
+    if (user && user.account_ids.length > 0 && !selectedAccount) {
+      setSelectedAccount(user.account_ids[0])
+    }
+  }, [user, selectedAccount])
+
+  useEffect(() => {
+    if (selectedAccount && token) {
       fetchAlerts()
     }
-  }, [token])
+  }, [selectedAccount, token])
 
   useEffect(() => {
     filterAlerts()
@@ -70,99 +81,19 @@ export default function AlertsPage() {
   const fetchAlerts = async () => {
     setLoading(true)
     try {
-      // Datos mockeados de alertas
-      const mockAlerts = generateMockAlerts()
-      setAlerts(mockAlerts)
-    } catch (error) {
-      toast.error('Error al cargar las alertas')
+      const response = await axios.get(`${API_URL}/api/alerts`, {
+        params: { accountId: selectedAccount },
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      setAlerts(response.data.alerts || [])
+    } catch (error: any) {
+      console.error('Error al cargar alertas:', error)
+      toast.error(error.response?.data?.error || 'Error al cargar las alertas')
     } finally {
       setLoading(false)
     }
   }
 
-  const generateMockAlerts = (): Alert[] => {
-    return [
-      {
-        id: 1,
-        name: 'Gasto diario excedido',
-        type: 'spend_limit',
-        status: 'triggered',
-        condition: {
-          metric: 'daily_spend',
-          operator: '>',
-          value: 500,
-          timeframe: '1d'
-        },
-        campaign_id: 1,
-        campaign_name: 'Black Friday 2024',
-        account_id: 1,
-        last_triggered: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-        created_at: '2024-01-15T10:00:00Z'
-      },
-      {
-        id: 2,
-        name: 'ROAS bajo crítico',
-        type: 'roas_drop',
-        status: 'active',
-        condition: {
-          metric: 'roas',
-          operator: '<',
-          value: 1.5,
-          timeframe: '7d'
-        },
-        account_id: 1,
-        created_at: '2024-01-20T10:00:00Z'
-      },
-      {
-        id: 3,
-        name: 'CTR cayendo',
-        type: 'ctr_drop',
-        status: 'triggered',
-        condition: {
-          metric: 'ctr_change',
-          operator: '<',
-          value: -20,
-          timeframe: '3d'
-        },
-        campaign_id: 2,
-        campaign_name: 'Brand Awareness Q4',
-        account_id: 1,
-        last_triggered: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
-        created_at: '2024-02-01T10:00:00Z'
-      },
-      {
-        id: 4,
-        name: 'Presupuesto agotándose rápido',
-        type: 'budget_pace',
-        status: 'resolved',
-        condition: {
-          metric: 'budget_spent_percentage',
-          operator: '>',
-          value: 80,
-          timeframe: 'lifetime'
-        },
-        campaign_id: 3,
-        campaign_name: 'Holiday Sales',
-        account_id: 1,
-        last_triggered: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-        created_at: '2024-02-10T10:00:00Z'
-      },
-      {
-        id: 5,
-        name: 'Pico de conversiones',
-        type: 'conversion_spike',
-        status: 'paused',
-        condition: {
-          metric: 'conversion_increase',
-          operator: '>',
-          value: 50,
-          timeframe: '1d'
-        },
-        account_id: 1,
-        created_at: '2024-02-15T10:00:00Z'
-      }
-    ]
-  }
 
   const filterAlerts = () => {
     let filtered = [...alerts]
@@ -351,6 +282,15 @@ export default function AlertsPage() {
         {/* Filtros */}
         <div className="card">
           <div className="flex flex-wrap gap-4">
+            {/* Selector de cuenta */}
+            {user && user.account_ids.length > 1 && (
+              <AccountSelector
+                selectedAccount={selectedAccount}
+                onAccountChange={setSelectedAccount}
+                accountIds={user.account_ids}
+              />
+            )}
+            
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
