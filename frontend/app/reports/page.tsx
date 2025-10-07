@@ -16,7 +16,9 @@ import {
   DocumentTextIcon,
   ArrowDownTrayIcon,
   ClockIcon,
-  CheckIcon
+  CheckIcon,
+  UsersIcon,
+  PhotoIcon
 } from '@heroicons/react/24/outline'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -79,79 +81,16 @@ export default function ReportsPage() {
   const fetchReports = async () => {
     setLoading(true)
     try {
-      // Datos mockeados
-      const mockReports = generateMockReports()
-      setReports(mockReports)
-    } catch (error) {
-      toast.error('Error al cargar los reportes')
+      const response = await reportService.getReports(token!)
+      setReports(response || [])
+    } catch (error: any) {
+      console.error('Error al cargar reportes:', error)
+      toast.error(error.response?.data?.error || 'Error al cargar los reportes')
     } finally {
       setLoading(false)
     }
   }
 
-  const generateMockReports = (): Report[] => {
-    return [
-      {
-        id: 1,
-        name: 'Reporte Mensual - Marzo 2024',
-        type: 'performance',
-        format: 'pdf',
-        frequency: 'monthly',
-        status: 'ready',
-        created_at: '2024-03-01T10:00:00Z',
-        last_generated: '2024-03-01T10:05:00Z',
-        file_size: '2.4 MB',
-        download_url: '/reports/marzo-2024.pdf',
-        schedule: { day: 1, hour: 10 }
-      },
-      {
-        id: 2,
-        name: 'Análisis de Campañas Q1',
-        type: 'campaigns',
-        format: 'excel',
-        frequency: 'once',
-        status: 'ready',
-        created_at: '2024-03-15T14:30:00Z',
-        last_generated: '2024-03-15T14:35:00Z',
-        file_size: '1.8 MB',
-        download_url: '/reports/campaigns-q1.xlsx'
-      },
-      {
-        id: 3,
-        name: 'Reporte Semanal Automático',
-        type: 'performance',
-        format: 'pdf',
-        frequency: 'weekly',
-        status: 'scheduled',
-        created_at: '2024-02-01T09:00:00Z',
-        last_generated: '2024-03-18T09:00:00Z',
-        file_size: '1.2 MB',
-        schedule: { day: 1, hour: 9 }
-      },
-      {
-        id: 4,
-        name: 'Análisis de Audiencias',
-        type: 'audience',
-        format: 'csv',
-        frequency: 'once',
-        status: 'generating',
-        created_at: '2024-03-20T11:00:00Z'
-      },
-      {
-        id: 5,
-        name: 'Reporte Diario de Gastos',
-        type: 'performance',
-        format: 'csv',
-        frequency: 'daily',
-        status: 'ready',
-        created_at: '2024-01-15T08:00:00Z',
-        last_generated: new Date().toISOString(),
-        file_size: '450 KB',
-        download_url: '/reports/daily-spend.csv',
-        schedule: { hour: 8 }
-      }
-    ]
-  }
 
   const getReportTypeIcon = (type: ReportType) => {
     switch (type) {
