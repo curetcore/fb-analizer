@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
+import axios from 'axios'
 import { authService } from '@/lib/services/auth'
 import { useAuthStore } from '@/store/authStore'
 
