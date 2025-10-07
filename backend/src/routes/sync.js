@@ -5,8 +5,8 @@ const logger = require('../utils/logger');
 
 const router = express.Router();
 
-// Manual sync endpoint (admin only)
-router.post('/facebook', auth, authorize('admin'), async (req, res) => {
+// Manual sync endpoint
+router.post('/facebook', auth, async (req, res) => {
   try {
     const { daysBack = 30 } = req.body;
     

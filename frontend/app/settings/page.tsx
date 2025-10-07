@@ -45,10 +45,6 @@ export default function SettingsPage() {
   }
 
   const handleManualSync = async () => {
-    if (!user || user.role !== 'admin') {
-      toast.error('Solo los administradores pueden ejecutar sincronizaciones')
-      return
-    }
 
     setSyncing(true)
     try {
@@ -142,7 +138,7 @@ export default function SettingsPage() {
               </div>
 
               {/* Botón de sincronización manual */}
-              {user?.role === 'admin' && (
+              {(
                 <div className="pt-4">
                   <button
                     onClick={handleManualSync}
@@ -155,7 +151,7 @@ export default function SettingsPage() {
                     La sincronización automática se ejecuta cada hora
                   </p>
                 </div>
-              )}
+              )
 
               {!syncStatus.hasAccessToken && (
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
@@ -213,7 +209,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Zona de peligro */}
-        {user?.role === 'admin' && (
+        {false && user?.role === 'admin' && (
           <div className="card border-red-200 bg-red-50">
             <h2 className="text-lg font-semibold mb-4 text-red-900">Zona de Peligro</h2>
             
