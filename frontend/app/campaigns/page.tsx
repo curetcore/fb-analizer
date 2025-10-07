@@ -44,55 +44,18 @@ export default function CampaignsPage() {
   const fetchCampaigns = async () => {
     setLoading(true)
     try {
-      // Por ahora usamos datos mockeados
-      const mockCampaigns = generateMockCampaigns()
-      setCampaigns(mockCampaigns)
-    } catch (error) {
-      toast.error('Error al cargar las campañas')
+      if (user && user.account_ids.length > 0 && token) {
+        const data = await campaignService.getCampaigns(user.account_ids[0], token)
+        setCampaigns(data.campaigns || [])
+      }
+    } catch (error: any) {
+      console.error('Error al cargar campañas:', error)
+      toast.error(error.response?.data?.error || 'Error al cargar las campañas')
     } finally {
       setLoading(false)
     }
   }
 
-  const generateMockCampaigns = () => {
-    const campaignTypes = [
-      { name: 'Black Friday 2024', objective: 'CONVERSIONS', budget: 5000 },
-      { name: 'Brand Awareness Q4', objective: 'BRAND_AWARENESS', budget: 3000 },
-      { name: 'Holiday Sales', objective: 'CONVERSIONS', budget: 8000 },
-      { name: 'Product Launch X', objective: 'TRAFFIC', budget: 4000 },
-      { name: 'Remarketing Web', objective: 'CONVERSIONS', budget: 2500 },
-      { name: 'Lead Generation B2B', objective: 'LEAD_GENERATION', budget: 6000 },
-      { name: 'Summer Collection', objective: 'CATALOG_SALES', budget: 4500 },
-      { name: 'App Install Campaign', objective: 'APP_INSTALLS', budget: 3500 },
-      { name: 'Video Views Brand', objective: 'VIDEO_VIEWS', budget: 2000 },
-      { name: 'Customer Retention', objective: 'CONVERSIONS', budget: 3000 }
-    ]
-
-    return campaignTypes.map((campaign, index) => {
-      const spend = campaign.budget * (0.6 + Math.random() * 0.4)
-      const impressions = Math.floor(spend * (800 + Math.random() * 400))
-      const clicks = Math.floor(impressions * (0.01 + Math.random() * 0.04))
-      const conversions = Math.floor(clicks * (0.02 + Math.random() * 0.08))
-      const revenue = conversions * (20 + Math.random() * 80)
-
-      return {
-        id: index + 1,
-        name: campaign.name,
-        status: index < 7 ? 'ACTIVE' : 'PAUSED',
-        objective: campaign.objective,
-        budget_daily: campaign.budget / 30,
-        spend,
-        impressions,
-        clicks,
-        conversions,
-        revenue,
-        ctr: (clicks / impressions * 100),
-        cpc: spend / clicks,
-        roas: revenue / spend,
-        created_at: new Date(Date.now() - Math.random() * 90 * 24 * 60 * 60 * 1000).toISOString()
-      }
-    })
-  }
 
   const filterAndSortCampaigns = () => {
     let filtered = [...campaigns]
@@ -440,7 +403,25 @@ export default function CampaignsPage() {
 
             {filteredCampaigns.length === 0 && (
               <div className="text-center py-12">
-                <p className="text-gray-500">No se encontraron campañas</p>
+                <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                </svg>
+                <h3 className="mt-2 text-sm font-medium text-gray-900">No hay campañas</h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  {campaigns.length === 0 
+                    ? 'No se han sincronizado campañas de Facebook Ads todavía.'
+                    : 'No se encontraron campañas con los filtros aplicados.'}
+                </p>
+                {campaigns.length === 0 && (
+                  <div className="mt-6">
+                    <Link
+                      href="/settings"
+                      className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700"
+                    >
+                      Ir a Configuración
+                    </Link>
+                  </div>
+                )}
               </div>
             )}
           </div>
