@@ -15,7 +15,8 @@ import {
   XMarkIcon,
   PlusIcon,
   PencilIcon,
-  TrashIcon
+  TrashIcon,
+  PlayIcon
 } from '@heroicons/react/24/outline'
 import { formatDistanceToNow } from 'date-fns'
 import { es } from 'date-fns/locale'
