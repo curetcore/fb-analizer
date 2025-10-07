@@ -1,4 +1,5 @@
 'use client'
+// Settings page for Facebook sync configuration
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
