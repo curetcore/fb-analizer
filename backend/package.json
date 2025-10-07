@@ -29,7 +29,10 @@
     "node-cron": "^3.0.3",
     "bull": "^4.11.5",
     "axios": "^1.6.2",
-    "date-fns": "^2.30.0"
+    "date-fns": "^2.30.0",
+    "exceljs": "^4.4.0",
+    "pdfkit": "^0.14.0",
+    "json2csv": "^6.0.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.2",
