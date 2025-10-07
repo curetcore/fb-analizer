@@ -39,7 +39,8 @@ app.get('/health', (req, res) => {
   res.json({ 
     status: 'ok', 
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV
+    environment: process.env.NODE_ENV,
+    hasToken: !!process.env.FACEBOOK_ACCESS_TOKEN
   });
 });
 
