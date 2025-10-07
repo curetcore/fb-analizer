@@ -50,6 +50,7 @@ app.use('/api/campaigns', require('./routes/campaigns'));
 app.use('/api/metrics', require('./routes/metrics'));
 app.use('/api/alerts', require('./routes/alerts'));
 app.use('/api/reports', require('./routes/reports'));
+app.use('/api/sync', require('./routes/sync'));
 
 // Error handling
 app.use(errorHandler);
