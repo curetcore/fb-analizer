@@ -31,8 +31,8 @@ COPY --from=deps --chown=expressjs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=expressjs:nodejs /app ./
 
 # Set environment
-ENV NODE_ENV production
-ENV PORT 4000
+ENV NODE_ENV=production
+ENV PORT=4000
 
 USER expressjs
 

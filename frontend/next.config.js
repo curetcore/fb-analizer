@@ -9,12 +9,14 @@ const nextConfig = {
     domains: ['localhost'],
   },
   async rewrites() {
-    return [
+    // Only add rewrite if API URL is available
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+    return apiUrl ? [
       {
         source: '/api/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL}/api/:path*`,
+        destination: `${apiUrl}/api/:path*`,
       },
-    ];
+    ] : [];
   },
 }
 
