@@ -9,6 +9,8 @@ import CampaignChart from '@/components/dashboard/CampaignChart'
 import TopCampaigns from '@/components/dashboard/TopCampaigns'
 import { metricsService } from '@/lib/services/metrics'
 import { formatCurrency, formatNumber, formatPercentage } from '@/lib/utils/formatters'
+import { useAccounts } from '@/hooks/useAccounts'
+import AccountSelector from '@/components/common/AccountSelector'
 import toast from 'react-hot-toast'
 
 export default function DashboardPage() {
@@ -95,17 +97,11 @@ export default function DashboardPage() {
             </div>
             {/* Selector de cuenta */}
             {user && user.account_ids.length > 1 && (
-              <select
-                value={selectedAccount || ''}
-                onChange={(e) => setSelectedAccount(Number(e.target.value))}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-              >
-                {user.account_ids.map((id) => (
-                  <option key={id} value={id}>
-                    Cuenta {id}
-                  </option>
-                ))}
-              </select>
+              <AccountSelector
+                selectedAccount={selectedAccount}
+                onAccountChange={setSelectedAccount}
+                accountIds={user.account_ids}
+              />
             )}
           </div>
         </div>

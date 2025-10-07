@@ -6,6 +6,7 @@ import { useAuthStore } from '@/store/authStore'
 import DashboardLayout from '@/components/layouts/DashboardLayout'
 import { campaignService } from '@/lib/services/campaigns'
 import { formatCurrency, formatNumber, formatPercentage } from '@/lib/utils/formatters'
+import AccountSelector from '@/components/common/AccountSelector'
 import toast from 'react-hot-toast'
 import { ChevronUpIcon, ChevronDownIcon, FunnelIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline'
 import Link from 'next/link'
@@ -24,6 +25,7 @@ export default function CampaignsPage() {
   const [sortField, setSortField] = useState<SortField>('spend')
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
   const [selectedCampaigns, setSelectedCampaigns] = useState<number[]>([])
+  const [selectedAccount, setSelectedAccount] = useState<number | null>(null)
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -32,10 +34,16 @@ export default function CampaignsPage() {
   }, [isAuthenticated, router])
 
   useEffect(() => {
-    if (user && token) {
+    if (user && user.account_ids.length > 0 && !selectedAccount) {
+      setSelectedAccount(user.account_ids[0])
+    }
+  }, [user, selectedAccount])
+
+  useEffect(() => {
+    if (selectedAccount && token) {
       fetchCampaigns()
     }
-  }, [user, token])
+  }, [selectedAccount, token])
 
   useEffect(() => {
     filterAndSortCampaigns()
@@ -44,8 +52,8 @@ export default function CampaignsPage() {
   const fetchCampaigns = async () => {
     setLoading(true)
     try {
-      if (user && user.account_ids.length > 0 && token) {
-        const data = await campaignService.getCampaigns(user.account_ids[0], token)
+      if (selectedAccount && token) {
+        const data = await campaignService.getCampaigns(selectedAccount, token)
         setCampaigns(data.campaigns || [])
       }
     } catch (error: any) {
@@ -166,6 +174,15 @@ export default function CampaignsPage() {
                 />
               </div>
             </div>
+
+            {/* Selector de cuenta */}
+            {user && user.account_ids.length > 1 && (
+              <AccountSelector
+                selectedAccount={selectedAccount}
+                onAccountChange={setSelectedAccount}
+                accountIds={user.account_ids}
+              />
+            )}
 
             {/* Filtro por estado */}
             <select

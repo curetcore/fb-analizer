@@ -6,6 +6,7 @@ import { useAuthStore } from '@/store/authStore'
 import DashboardLayout from '@/components/layouts/DashboardLayout'
 import { formatCurrency, formatNumber, formatPercentage } from '@/lib/utils/formatters'
 import { reportService } from '@/lib/services/reports'
+import AccountSelector from '@/components/common/AccountSelector'
 import toast from 'react-hot-toast'
 import { 
   DocumentArrowDownIcon,
