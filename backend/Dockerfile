@@ -7,15 +7,15 @@ RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 # Copy package files
-COPY backend/package*.json ./
+COPY package*.json ./
 RUN npm ci --only=production && npm cache clean --force
 
 # Rebuild the source code only when needed
 FROM base AS builder
 WORKDIR /app
-COPY backend/package*.json ./
+COPY package*.json ./
 RUN npm ci && npm cache clean --force
-COPY backend/ .
+COPY . .
 RUN npm run build || echo "No build script"
 
 # Production image
