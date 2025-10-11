@@ -14,6 +14,13 @@ class FacebookSyncService {
   // Obtener todas las cuentas publicitarias
   async getAdAccounts() {
     try {
+      logger.info('Fetching Facebook ad accounts...');
+      
+      if (!this.accessToken) {
+        logger.error('No Facebook access token available');
+        throw new Error('FACEBOOK_ACCESS_TOKEN not configured');
+      }
+      
       const response = await axios.get(`${this.baseUrl}/me/adaccounts`, {
         params: {
           access_token: this.accessToken,
@@ -21,9 +28,10 @@ class FacebookSyncService {
         }
       });
 
+      logger.info(`Found ${response.data.data.length} ad accounts`);
       return response.data.data;
     } catch (error) {
-      logger.error('Error fetching ad accounts:', error.response?.data || error);
+      logger.error('Error fetching ad accounts:', error.response?.data || error.message || error);
       throw error;
     }
   }
@@ -258,11 +266,22 @@ class FacebookSyncService {
       
       // Verificar token
       if (!this.accessToken) {
+        logger.error('Facebook access token is not configured');
         throw new Error('FACEBOOK_ACCESS_TOKEN not configured');
       }
       
+      logger.info(`Token starts with: ${this.accessToken.substring(0, 20)}...`);
+      
       // Calcular pasos totales
-      const accounts = await this.getAdAccounts();
+      let accounts;
+      try {
+        accounts = await this.getAdAccounts();
+      } catch (error) {
+        logger.error('Failed to get ad accounts:', error);
+        await syncProgress.completeSync(false, error.message || 'Failed to fetch ad accounts');
+        throw error;
+      }
+      
       const totalSteps = 1 + (accounts.length * 3); // 1 para cuentas + 3 por cuenta (detalles, campañas, métricas)
       
       await syncProgress.startSync(totalSteps);

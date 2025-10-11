@@ -76,19 +76,28 @@ class SyncProgressService {
     }
   }
 
-  async completeSync(success = true) {
+  async completeSync(success = true, errorMessage = null) {
     if (!this.activeSync) return;
 
     const status = success ? 'completed' : 'failed';
+    
+    // Si hay error, guardarlo en los detalles
+    if (!success && errorMessage) {
+      if (!this.activeSync.details) {
+        this.activeSync.details = {};
+      }
+      this.activeSync.details.error = errorMessage;
+    }
     
     try {
       await query(
         `UPDATE sync_progress 
          SET status = $1,
              percentage = $2,
+             details = $3,
              completed_at = NOW()
          WHERE id = 1`,
-        [status, success ? 100 : this.activeSync.percentage]
+        [status, success ? 100 : this.activeSync.percentage, JSON.stringify(this.activeSync.details || {})]
       );
     } catch (error) {
       logger.error('Error completing sync progress:', error);
