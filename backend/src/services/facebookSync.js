@@ -9,6 +9,13 @@ class FacebookSyncService {
     this.accessToken = process.env.FACEBOOK_ACCESS_TOKEN;
     this.apiVersion = 'v18.0';
     this.baseUrl = `https://graph.facebook.com/${this.apiVersion}`;
+    
+    // Log token info on initialization
+    if (this.accessToken) {
+      console.log(`Facebook token configured: ${this.accessToken.substring(0, 20)}...`);
+    } else {
+      console.error('WARNING: FACEBOOK_ACCESS_TOKEN is not configured!');
+    }
   }
 
   // Obtener todas las cuentas publicitarias

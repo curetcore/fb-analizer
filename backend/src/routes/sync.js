@@ -39,6 +39,24 @@ router.post('/facebook', auth, async (req, res) => {
   }
 });
 
+// Debug token configuration
+router.get('/debug-token', auth, async (req, res) => {
+  const token = process.env.FACEBOOK_ACCESS_TOKEN;
+  if (!token) {
+    return res.json({ 
+      hasToken: false, 
+      error: 'FACEBOOK_ACCESS_TOKEN not configured' 
+    });
+  }
+  
+  res.json({ 
+    hasToken: true,
+    tokenStart: token.substring(0, 20) + '...',
+    tokenLength: token.length,
+    nodeEnv: process.env.NODE_ENV
+  });
+});
+
 // Check sync status
 router.get('/status', auth, async (req, res) => {
   try {
